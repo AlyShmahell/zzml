@@ -6,10 +6,14 @@
 #include <iostream>
 #include <stack>
 #include <string>
-#include <unordered_map>
+#include <regex>
 #include "vendor/nlohmann/json.hpp"
 #include "zzml.lexer.c"
 using json = nlohmann::json;
+
+std::regex  opener("<(\\w+)([^>]*)>");
+std::regex  closer("</(\\w+)>");
+std::smatch match;
 
 std::vector<std::string> stack;
 json res = {{"func", json({})}, {"text", json({})}};
@@ -65,21 +69,45 @@ EXP:
     printer();
 }
 | EXP TAGOPN {
-    char*       tag = $2;
+    std::string       tag = $2;
+    std::vector<std::string> params;
+    std::string name;
+    if (std::regex_search(tag, match, opener)) {
+        name   = match[1];
+        std::istringstream iss(match[2]);
+        std::string token;
+        while (iss >> token) {
+            params.push_back(token);
+        }
+    } else {
+        throw std::runtime_error("ill formatted opening tag: " + tag);
+    }
     std::string idx = std::to_string(res["func"].size());
     json tmp = {
-                {"name", tag}
+                {"name", name},
+                {"params", params}
             
         };
     res["func"][idx] = tmp;
     stack.push_back(idx);
 }
 | EXP TAGCLS {
+    std::string       tag = $2;
+    std::string name;
+    if (std::regex_search(tag, match, closer)) {
+        name   = match[1];
+        if (name!=res["func"][stack.back()]["name"])
+        {
+            throw std::runtime_error("mismatched closing tag: " + tag);
+        }
+    }
+    else {
+        throw std::runtime_error("ill formatted closing tag: " + tag);
+    }
     stack.pop_back();
 }
 | EXP TXT {
     char* txt = $2;
-
     std::string idx = std::to_string(res["text"].size());
     std::reverse(stack.begin(), stack.end());
     json tmp = {
