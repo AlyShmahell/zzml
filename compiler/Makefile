@@ -12,4 +12,4 @@ build: zzml.l zzml.y
 
 clean:
 	shopt -s extglob;\
-	eval 'rm -v !("zzml.l"|"zzml.y"|"zzml.elf"|"Makefile"|"vendor")'
+	eval 'rm -v !("zzml.l"|"zzml.y"|"zzml.elf"|"Makefile"|"vendor"|"utils.cpp")'
