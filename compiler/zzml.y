@@ -7,11 +7,20 @@
 #include <stack>
 #include <string>
 #include <regex>
+#include <utility>
 #include "vendor/nlohmann/json.hpp"
 #include "zzml.lexer.c"
 using json = nlohmann::json;
 
-std::regex  opener("<(\\w+)([^>]*)>");
+std::pair<std::string, std::string> process(std::sregex_iterator &next, std::sregex_iterator &end){
+    std::smatch match = *next;
+    std::string name = match[1]; 
+    std::string value = match[2]; 
+    ++next;
+    return std::make_pair(name, value);
+}
+
+std::regex opener(R"(\s*([^=\s<>]+)\s*((?:=)\s*(\"[^\"]*\"|\'[^\']*\'|[^>\s]+))?)");
 std::regex  closer("</(\\w+)>");
 std::smatch match;
 
@@ -70,14 +79,19 @@ EXP:
 }
 | EXP TAGOPN {
     std::string       tag = $2;
+    std::cout<<tag<<std::endl;
     std::vector<std::string> params;
     std::string name;
     if (std::regex_search(tag, match, opener)) {
-        name   = match[1];
-        std::istringstream iss(match[2]);
-        std::string token;
-        while (iss >> token) {
-            params.push_back(token);
+        std::sregex_iterator next(tag.begin(), tag.end(), opener);
+        std::sregex_iterator end;
+
+        std::pair<std::string, std::string> header = process(next, end);
+        name   = header.first;
+        while (next != end) {
+            
+            std::pair<std::string, std::string> param = process(next, end);
+            params.push_back(param.first+param.second);
         }
     } else {
         throw std::runtime_error("ill formatted opening tag: " + tag);
