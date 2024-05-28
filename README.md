@@ -2,13 +2,21 @@
 SSML (Speech Synthesis Markup Language) Preprocessor/Interpreter/Compiler.
 ## Requirements
 ```sh
-sudo apt update && sudo apt install flex bison
+sudo apt update && sudo apt install g++ flex bison python3-dev
 ```
-## Building
+## Installation
 ```sh
-cd compiler && make
+pip install git+https://github.com/AlyShmahell/zzml/tree/main.git
 ```
-## Usage
-```sh
-./zzml.elf
+## Example
+```py
+import zzml
+
+print(
+    zzml.zzml(
+        """
+        <speak>hello</speak>
+        """
+    )
+)
 ```
