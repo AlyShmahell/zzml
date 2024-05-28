@@ -1,6 +1,6 @@
 %{
 #include <stdio.h>
-#include "zzml.parser.h"
+#include "zzml.y.hpp"
 int line = 1;
 %}
 

@@ -8,8 +8,9 @@
 #include <string>
 #include <regex>
 #include <utility>
+#include "Python.h"
 #include "vendor/nlohmann/json.hpp"
-#include "zzml.lexer.c"
+#include "zzml.l.cpp"
 using json = nlohmann::json;
 
 std::pair<std::string, std::string> process(std::sregex_iterator &next, std::sregex_iterator &end){
@@ -168,4 +169,36 @@ int main(int argc, char *argv[])
     }
     while(!feof(yyin));
     return 0;
+}
+
+static PyObject * zzml(PyObject * self, PyObject * args)
+{
+  char * input;
+  PyObject * ret;         
+  if (!PyArg_ParseTuple(args, "s", &input)) {
+    return NULL;
+  }
+  yy_scan_string(input);
+  yyparse();
+  printer();
+  // build the resulting string into a Python object.
+  ret = PyBytes_FromString(res.dump().c_str());
+  return ret;
+}
+
+static PyMethodDef Methods[] = {
+  { "zzml", zzml, METH_VARARGS},
+  { NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef definition = {
+    PyModuleDef_HEAD_INIT,
+    "zzml",
+    "A Python module extension for C++ lib",
+    -1,
+    Methods
+};
+PyMODINIT_FUNC PyInit_zzml(void) {
+    Py_Initialize();
+    return PyModule_Create(&definition);
 }
