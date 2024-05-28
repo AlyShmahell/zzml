@@ -6,7 +6,7 @@ sudo apt update && sudo apt install g++ flex bison python3-dev
 ```
 ## Installation
 ```sh
-pip install git+https://github.com/AlyShmahell/zzml/tree/main.git
+pip install git+https://github.com/AlyShmahell/zzml.git
 ```
 ## Example
 ```py
