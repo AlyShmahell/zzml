@@ -1,6 +1,6 @@
 %{
 #include <stdio.h>
-#include "zzml.tab.h"
+#include "zzml.parser.h"
 int line = 1;
 %}
 
