@@ -1,5 +1,6 @@
 # zzml
-SSML (Speech Synthesis Markup Language) Preprocessor/Interpreter/Compiler.
+- SSML (Speech Synthesis Markup Language) Preprocessor/Interpreter/Compiler.  
+- **work in progress**
 ## Requirements
 ```sh
 sudo apt update && sudo apt install g++ flex bison python3-dev
