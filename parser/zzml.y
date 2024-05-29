@@ -1,5 +1,5 @@
-%{
-    
+%{ 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -13,26 +13,83 @@
 #include "zzml.l.cpp"
 using json = nlohmann::json;
 
-std::pair<std::string, std::string> process(std::sregex_iterator &next, std::sregex_iterator &end){
-    std::smatch match = *next;
-    std::string name = match[1]; 
-    std::string value = match[2]; 
-    ++next;
-    return std::make_pair(name, value);
+class Parser {
+    private:
+        const std::regex opener{R"(\s*([^=\s<>]+)\s*((?:=)\s*(\"[^\"]*\"|\'[^\']*\'|[^>\s]+))?)"};
+        const std::regex closer{"</(\\w+)>"};
+        std::smatch match;
+        std::vector<std::string> stack;
+        json res;
+        std::pair<std::string, std::string> process(std::sregex_iterator &next, std::sregex_iterator &end){
+            std::smatch match = *next;
+            std::string name  = match[1]; 
+            std::string value = match[2]; 
+            ++next;
+            return std::make_pair(name, value);
+        }   
+    public:
+        Parser(): 
+            res({{"func", json({})}, {"text", json({})}})
+        {
+            
+        }
+        void printer()
+        {
+            std::string out = this->res.dump(4);
+            std::cout << out << std::endl;
+        }
+        const char* c_str(){
+            return this->res.dump(4).c_str();
+        }
+        void tagopn(std::string tag){
+            std::vector<std::string> params;
+            std::string name;
+            if (std::regex_search(tag, match, opener)) {
+                std::sregex_iterator next(tag.begin(), tag.end(), opener);
+                std::sregex_iterator end;
+                std::pair<std::string, std::string> header = this->process(next, end);
+                name   = header.first;
+                while (next != end) {
+                    std::pair<std::string, std::string> param = this->process(next, end);
+                    params.push_back(param.first+param.second);
+                }
+            } else {
+                throw std::runtime_error("ill formatted opening tag: " + tag);
+            }
+            std::string idx = std::to_string(res["func"].size());
+            json tmp = {
+                        {"name", name},
+                        {"params", params}
+                };
+            this->res["func"][idx] = tmp;
+            this->stack.push_back(idx);
+        }
+        void tagcls(std::string tag){
+            std::string name;
+            if (std::regex_search(tag, match, closer)) {
+                name   = match[1];
+                if (name!=res["func"][stack.back()]["name"])
+                {
+                    throw std::runtime_error("mismatched closing tag: " + tag);
+                }
+            }
+            else {
+                throw std::runtime_error("ill formatted closing tag: " + tag);
+            }
+            this->stack.pop_back();
+        }
+        void text(char* txt){
+            std::string idx = std::to_string(res["text"].size());
+            std::reverse(stack.begin(), stack.end());
+            json tmp = {
+                        {"val", txt},
+                        {"ops", stack}
+            };
+            std::reverse(stack.begin(), stack.end());
+            res["text"][idx] = tmp;
+        }
 }
-
-std::regex opener(R"(\s*([^=\s<>]+)\s*((?:=)\s*(\"[^\"]*\"|\'[^\']*\'|[^>\s]+))?)");
-std::regex  closer("</(\\w+)>");
-std::smatch match;
-
-std::vector<std::string> stack;
-json res = {{"func", json({})}, {"text", json({})}};
-
-void printer()
-{
-    std::string out = res.dump(4);
-    std::cout << out << std::endl;
-}
+parser = Parser();
 
 int errors = 0;
 extern FILE* yyin;
@@ -47,7 +104,6 @@ void yyerror(const char* error)
                yytext);
        exit(1);
 }
-
 int yywrap()
 {
     return 1;
@@ -59,14 +115,9 @@ int yywrap()
     char* string;
     int   integer;
 }
-
 %token RETURN NEWLINE
 %token <string> TAGOPN TAGCLS TXT
-
-
 %start START
-
-
 %%
 START: EXP	{
                 std::cout<<std::endl;
@@ -76,100 +127,21 @@ EXP:
 | RETURN
 | NEWLINE
 | EXP NEWLINE {
-    printer();
+    parser.printer();
 }
 | EXP TAGOPN {
     std::string       tag = $2;
-    std::cout<<tag<<std::endl;
-    std::vector<std::string> params;
-    std::string name;
-    if (std::regex_search(tag, match, opener)) {
-        std::sregex_iterator next(tag.begin(), tag.end(), opener);
-        std::sregex_iterator end;
-
-        std::pair<std::string, std::string> header = process(next, end);
-        name   = header.first;
-        while (next != end) {
-            
-            std::pair<std::string, std::string> param = process(next, end);
-            params.push_back(param.first+param.second);
-        }
-    } else {
-        throw std::runtime_error("ill formatted opening tag: " + tag);
-    }
-    std::string idx = std::to_string(res["func"].size());
-    json tmp = {
-                {"name", name},
-                {"params", params}
-            
-        };
-    res["func"][idx] = tmp;
-    stack.push_back(idx);
+    parser.tagopn(tag);
 }
 | EXP TAGCLS {
     std::string       tag = $2;
-    std::string name;
-    if (std::regex_search(tag, match, closer)) {
-        name   = match[1];
-        if (name!=res["func"][stack.back()]["name"])
-        {
-            throw std::runtime_error("mismatched closing tag: " + tag);
-        }
-    }
-    else {
-        throw std::runtime_error("ill formatted closing tag: " + tag);
-    }
-    stack.pop_back();
+    parser.tagcls(tag);
 }
 | EXP TXT {
     char* txt = $2;
-    std::string idx = std::to_string(res["text"].size());
-    std::reverse(stack.begin(), stack.end());
-    json tmp = {
-                {"val", txt},
-                {"ops", stack}
-            
-    };
-    std::reverse(stack.begin(), stack.end());
-    res["text"][idx] = tmp;
+    parser.text(txt);
 }
 %%
-
-
-/**
- * Main
- */
-int main(int argc, char *argv[])
-{
-    if(argc==2)
-    {
-        yyin =  fopen(argv[1], "r");
-        if (yyin==NULL)
-            {
-                fprintf(stderr,
-                    "error opening file (%s).\n",
-                    argv[1]);
-                exit(1);
-            }
-    }
-    else if (argc==1)
-    {
-        yyin = stdin;
-    }
-    else
-    {
-        fprintf(stderr,
-                "Too many arguments (%d).\n",
-                argc-1);
-        exit(1);
-    }
-    do
-    {
-        yyparse();
-    }
-    while(!feof(yyin));
-    return 0;
-}
 
 static PyObject * zzml(PyObject * self, PyObject * args)
 {
@@ -180,9 +152,7 @@ static PyObject * zzml(PyObject * self, PyObject * args)
   }
   yy_scan_string(input);
   yyparse();
-  printer();
-  // build the resulting string into a Python object.
-  ret = PyBytes_FromString(res.dump().c_str());
+  ret = PyBytes_FromString(parser.c_str());
   return ret;
 }
 
