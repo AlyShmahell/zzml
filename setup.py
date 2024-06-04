@@ -7,16 +7,16 @@ class Extension(_Extension):
             os.system(prefix_script)
         super().__init__(*args, **kwargs)
 
-zzml = Extension(
-    'zzml',
-    sources=['build/zzml.y.cpp'],
-    extra_compile_args=["-fPIC", "-std=c++11", "-I./parser", os.popen("python3-config --cflags --libs --embed").read()], 
+ssml = Extension(
+    'ssml',
+    sources=['build/ssml.y.cpp'],
+    extra_compile_args=["-fPIC", "-std=c++11", "-I./ssml", os.popen("python3-config --cflags --libs --embed").read()], 
     language="c++",
     prefix_scripts=[
-        "rm   -rf build",
-        "mkdir -p build",
-        "flex  --outfile build/zzml.l.cpp                     parser/zzml.l",
-        "bison -d     -o build/zzml.y.hpp -o build/zzml.y.cpp parser/zzml.y"
+        "rm          -rf build",
+        "mkdir        -p build",
+        "flex  --outfile build/ssml.l.cpp                     ssml/ssml.l",
+        "bison -d     -o build/ssml.y.hpp -o build/ssml.y.cpp ssml/ssml.y"
     ]
 )
 
@@ -25,6 +25,6 @@ setup(
     version='0.1',
     python_requires='>=3.10',
     description='SSML (Speech Synthesis Markup Language) Preprocessor/Interpreter/Compiler.',
-    packages=['build'],
-    ext_modules=[zzml]
+    packages=['zzml'],
+    ext_modules=[ssml]
 )

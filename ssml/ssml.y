@@ -10,13 +10,13 @@
 #include <utility>
 #include "Python.h"
 #include "vendor/nlohmann/json.hpp"
-#include "zzml.l.cpp"
+#include "ssml.l.cpp"
 using json = nlohmann::json;
 
 class Parser {
     private:
         const std::regex opener{R"(\s*([^=\s<>]+)\s*((?:=)\s*(\"[^\"]*\"|\'[^\']*\'|[^>\s]+))?)"};
-        const std::regex closer{"</(\\w+)>"};
+        const std::regex closer{"</([-\\w]+)>"};
         std::smatch match;
         std::vector<std::string> stack;
         json res;
@@ -143,7 +143,7 @@ EXP:
 }
 %%
 
-static PyObject * zzml(PyObject * self, PyObject * args)
+static PyObject * ssml(PyObject * self, PyObject * args)
 {
   char * input;
   PyObject * ret;         
@@ -157,18 +157,18 @@ static PyObject * zzml(PyObject * self, PyObject * args)
 }
 
 static PyMethodDef Methods[] = {
-  { "zzml", zzml, METH_VARARGS},
+  { "ssml", ssml, METH_VARARGS},
   { NULL, NULL, 0, NULL}
 };
 
 static struct PyModuleDef definition = {
     PyModuleDef_HEAD_INIT,
-    "zzml",
+    "ssml",
     "A Python module extension for C++ lib",
     -1,
     Methods
 };
-PyMODINIT_FUNC PyInit_zzml(void) {
+PyMODINIT_FUNC PyInit_ssml(void) {
     Py_Initialize();
     return PyModule_Create(&definition);
 }

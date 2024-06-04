@@ -32,3 +32,4 @@
 *.app
 *.elf
 **/*.egg-info
+**/*.pyc
